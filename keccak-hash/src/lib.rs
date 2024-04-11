@@ -12,7 +12,9 @@
 use std::io;
 
 pub use primitive_types::H256;
-use tiny_keccak::{Hasher, Keccak};
+use sha3::{Digest, Keccak256 as Keccak, Keccak512};
+// use tiny_keccak::{Hasher, Keccak};
+
 
 /// Get the KECCAK (i.e. Keccak) hash of the empty bytes string.
 pub const KECCAK_EMPTY: H256 = H256([
@@ -40,9 +42,10 @@ pub fn keccak<T: AsRef<[u8]>>(s: T) -> H256 {
 
 /// Computes in-place keccak256 hash of `data`.
 pub fn keccak256(data: &mut [u8]) {
-	let mut keccak256 = Keccak::v256();
+	let mut keccak256 = Keccak::new();
 	keccak256.update(data.as_ref());
-	keccak256.finalize(data);
+	let output = keccak256.finalize();
+	data.copy_from_slice(&output);
 }
 
 /// Computes in-place keccak256 hash of `data[range]`.
@@ -66,16 +69,19 @@ pub fn keccak256(data: &mut [u8]) {
 /// assert_eq!(&data, &expected);
 /// ```
 pub fn keccak256_range(data: &mut [u8], range: core::ops::Range<usize>) {
-	let mut keccak256 = Keccak::v256();
-	keccak256.update(&data[range]);
-	keccak256.finalize(data);
+	let mut keccak256 = Keccak::new();
+	keccak256.update(&data[range].as_ref());
+	let output = keccak256.finalize();
+	data.copy_from_slice(&output);
+
 }
 
 /// Computes in-place keccak512 hash of `data`.
 pub fn keccak512(data: &mut [u8]) {
-	let mut keccak512 = Keccak::v512();
+	let mut keccak512 = Keccak512::new();
 	keccak512.update(data.as_ref());
-	keccak512.finalize(data);
+	let output = keccak512.finalize();
+	data.copy_from_slice(&output);
 }
 
 /// Computes in-place keccak512 hash of `data[range]`.
@@ -98,9 +104,10 @@ pub fn keccak512(data: &mut [u8]) {
 /// assert_eq!(&data[..32], &expected);
 /// ```
 pub fn keccak512_range(data: &mut [u8], range: core::ops::Range<usize>) {
-	let mut keccak512 = Keccak::v512();
-	keccak512.update(&data[range]);
-	keccak512.finalize(data);
+	let mut keccak512 = Keccak512::new();
+	keccak512.update(&data[range].as_ref());
+	let output = keccak512.finalize();
+	data.copy_from_slice(&output);
 }
 
 pub fn keccak_256(input: &[u8], output: &mut [u8]) {
@@ -108,22 +115,24 @@ pub fn keccak_256(input: &[u8], output: &mut [u8]) {
 }
 
 pub fn keccak_512(input: &[u8], output: &mut [u8]) {
-	let mut keccak512 = Keccak::v512();
-	keccak512.update(input);
-	keccak512.finalize(output);
+	let mut keccak512 = Keccak512::new();
+	keccak512.update(input.as_ref());
+	let data = keccak512.finalize();
+	output.copy_from_slice(&data);
 }
 
 pub fn write_keccak<T: AsRef<[u8]>>(s: T, dest: &mut [u8]) {
-	let mut keccak256 = Keccak::v256();
+	let mut keccak256 = Keccak::new();
 	keccak256.update(s.as_ref());
-	keccak256.finalize(dest);
+	let output = keccak256.finalize();
+	dest.copy_from_slice(&output);
 }
 
 #[cfg(feature = "std")]
 pub fn keccak_pipe(r: &mut dyn io::BufRead, w: &mut dyn io::Write) -> Result<H256, io::Error> {
 	let mut output = [0u8; 32];
 	let mut input = [0u8; 1024];
-	let mut keccak256 = Keccak::v256();
+	let mut keccak256 = Keccak::new();
 
 	// read file
 	loop {
@@ -134,8 +143,8 @@ pub fn keccak_pipe(r: &mut dyn io::BufRead, w: &mut dyn io::Write) -> Result<H25
 		keccak256.update(&input[0..some]);
 		w.write_all(&input[0..some])?;
 	}
-
-	keccak256.finalize(&mut output);
+	let data = keccak256.finalize();
+	output.copy_from_slice(&data);
 	Ok(output.into())
 }
 

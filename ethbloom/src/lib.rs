@@ -58,8 +58,7 @@ use impl_codec::impl_fixed_hash_codec;
 use impl_rlp::impl_fixed_hash_rlp;
 #[cfg(feature = "serialize")]
 use impl_serde::impl_fixed_hash_serde;
-use tiny_keccak::{Hasher, Keccak};
-
+use sha3::{Digest, Keccak256, Keccak512};
 // 3 according to yellowpaper
 const BLOOM_BITS: u32 = 3;
 const BLOOM_SIZE: usize = 256;
@@ -101,9 +100,9 @@ impl<'a> From<Input<'a>> for Hash<'a> {
 		match input {
 			Input::Raw(raw) => {
 				let mut out = [0u8; 32];
-				let mut keccak256 = Keccak::v256();
+				let mut keccak256 = Keccak256::new();
 				keccak256.update(raw);
-				keccak256.finalize(&mut out);
+				out.copy_from_slice(&keccak256.finalize());
 				Hash::Owned(out)
 			},
 			Input::Hash(hash) => Hash::Ref(hash),

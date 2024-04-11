@@ -9,7 +9,7 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use ethbloom::{Bloom, Input};
 use hex_literal::hex;
-use tiny_keccak::{Hasher, Keccak};
+use sha3::{Digest, Keccak256, Keccak512};
 
 fn test_bloom() -> Bloom {
 	use std::str::FromStr;
@@ -36,9 +36,10 @@ fn test_bloom() -> Bloom {
 
 fn keccak256(input: &[u8]) -> [u8; 32] {
 	let mut out = [0u8; 32];
-	let mut keccak256 = Keccak::v256();
+	let mut keccak256 = Keccak256::new();
 	keccak256.update(input);
-	keccak256.finalize(&mut out);
+	let result = keccak256.finalize();
+	out.copy_from_slice(&result);
 	out
 }
 
